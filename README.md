@@ -1,2 +1,1 @@
-#Full stack open
-Solutions for the university of helsinki full stack open course.
+Solutions for university of helsinki full stack open course
