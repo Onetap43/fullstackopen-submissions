@@ -24,16 +24,21 @@ const App = () => {
     (filteredCountries.length === 1 ? filteredCountries[0] : null);
 
   useEffect(() => {
-    if (!countryToShow) return;
+  if (!countryToShow || !apiKey) return;
 
-    axios
-      .get(
-        `https://api.openweathermap.org/data/2.5/weather?q=${countryToShow.capital[0]}&appid=${apiKey}&units=metric`
-      )
-      .then(response => setWeather(response.data))
-      .catch(() => setWeather(null));
-  }, [countryToShow]);
-
+  axios
+    .get(
+      `https://api.openweathermap.org/data/2.5/weather?q=${countryToShow.capital[0]}&appid=${apiKey}&units=metric`
+    )
+    .then(response => {
+      console.log(response.data);
+      setWeather(response.data);
+    })
+    .catch(error => {
+      console.log(error.response?.data);
+      setWeather(null);
+    });
+}, [countryToShow, apiKey]);
   return (
     <div>
       <div>
