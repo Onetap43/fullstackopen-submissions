@@ -5,7 +5,7 @@ mongoose.set('strictQuery', false)
 const url = process.env.MONGODB_URI
 
 if (!url) {
-  console.error('MONGODB_URI is missing from the .env file')
+  console.error('MONGODB_URI is missing')
   process.exit(1)
 }
 
@@ -21,8 +21,25 @@ mongoose
   })
 
 const personSchema = new mongoose.Schema({
-  name: String,
-  number: String
+  name: {
+    type: String,
+    minLength: 3,
+    required: true
+  },
+
+  number: {
+    type: String,
+    minLength: 8,
+    required: true,
+
+    validate: {
+      validator: (number) => {
+        return /^\d{2,3}-\d+$/.test(number)
+      },
+      message: (props) =>
+        `${props.value} is not a valid phone number`
+    }
+  }
 })
 
 personSchema.set('toJSON', {

@@ -3,12 +3,14 @@ require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
+const path = require('path')
 const Person = require('./models/person')
 
 const app = express()
 
 app.use(cors())
 app.use(express.json())
+app.use(express.static('dist'))
 
 morgan.token('body', (request) => {
   if (request.method === 'POST' || request.method === 'PUT') {
@@ -19,14 +21,11 @@ morgan.token('body', (request) => {
 })
 
 app.use(
-  morgan(':method :url :status :res[content-length] - :response-time ms :body')
+  morgan(
+    ':method :url :status :res[content-length] - :response-time ms :body'
+  )
 )
 
-app.get('/', (request, response) => {
-  response.send('<h1>Phonebook Backend</h1>')
-})
-
-// 3.13: Fetch all persons from MongoDB
 app.get('/api/persons', (request, response, next) => {
   Person.find({})
     .then((persons) => {
@@ -35,7 +34,6 @@ app.get('/api/persons', (request, response, next) => {
     .catch((error) => next(error))
 })
 
-// 3.18: Info route uses MongoDB
 app.get('/info', (request, response, next) => {
   Person.countDocuments({})
     .then((count) => {
@@ -47,7 +45,6 @@ app.get('/info', (request, response, next) => {
     .catch((error) => next(error))
 })
 
-// 3.18: Fetch one person
 app.get('/api/persons/:id', (request, response, next) => {
   Person.findById(request.params.id)
     .then((person) => {
@@ -60,24 +57,8 @@ app.get('/api/persons/:id', (request, response, next) => {
     .catch((error) => next(error))
 })
 
-// 3.15: Delete person from MongoDB
-app.delete('/api/persons/:id', (request, response, next) => {
-  Person.findByIdAndDelete(request.params.id)
-    .then(() => {
-      response.status(204).end()
-    })
-    .catch((error) => next(error))
-})
-
-// 3.14: Save new person to MongoDB
 app.post('/api/persons', (request, response, next) => {
   const { name, number } = request.body
-
-  if (!name || !number) {
-    return response.status(400).json({
-      error: 'name or number is missing'
-    })
-  }
 
   const person = new Person({
     name,
@@ -92,22 +73,33 @@ app.post('/api/persons', (request, response, next) => {
     .catch((error) => next(error))
 })
 
-// 3.17: Update an existing person's number
 app.put('/api/persons/:id', (request, response, next) => {
   const { name, number } = request.body
 
-  Person.findById(request.params.id)
+  const updatedPerson = {
+    name,
+    number
+  }
+
+  Person.findByIdAndUpdate(request.params.id, updatedPerson, {
+    new: true,
+    runValidators: true,
+    context: 'query'
+  })
     .then((person) => {
-      if (!person) {
-        return response.status(404).end()
+      if (person) {
+        response.json(person)
+      } else {
+        response.status(404).end()
       }
+    })
+    .catch((error) => next(error))
+})
 
-      person.name = name
-      person.number = number
-
-      return person.save().then((updatedPerson) => {
-        response.json(updatedPerson)
-      })
+app.delete('/api/persons/:id', (request, response, next) => {
+  Person.findByIdAndDelete(request.params.id)
+    .then(() => {
+      response.status(204).end()
     })
     .catch((error) => next(error))
 })
@@ -118,15 +110,26 @@ const unknownEndpoint = (request, response) => {
   })
 }
 
-app.use(unknownEndpoint)
+app.use('/api', unknownEndpoint)
 
-// 3.16: Centralized error-handling middleware
+const frontendFallback = (request, response) => {
+  response.sendFile(path.resolve(__dirname, 'dist', 'index.html'))
+}
+
+app.get('*path', frontendFallback)
+
 const errorHandler = (error, request, response, next) => {
   console.error(error.message)
 
   if (error.name === 'CastError') {
     return response.status(400).json({
       error: 'malformatted id'
+    })
+  }
+
+  if (error.name === 'ValidationError') {
+    return response.status(400).json({
+      error: error.message
     })
   }
 
