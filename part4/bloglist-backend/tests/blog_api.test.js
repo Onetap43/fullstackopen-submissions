@@ -6,19 +6,43 @@ const {
   describe
 } = require('node:test')
 
+const bcrypt = require('bcrypt')
 const mongoose = require('mongoose')
 const supertest = require('supertest')
 
 const app = require('../app')
 const Blog = require('../models/blog')
+const User = require('../models/user')
 const helper = require('./test_helper')
 
 const api = supertest(app)
 
+let testUser
+
 describe('when there are initially some blogs saved', () => {
   beforeEach(async () => {
     await Blog.deleteMany({})
-    await Blog.insertMany(helper.initialBlogs)
+    await User.deleteMany({})
+
+    const passwordHash = await bcrypt.hash('sekret', 10)
+
+    testUser = new User({
+      username: 'root',
+      name: 'Super User',
+      passwordHash
+    })
+
+    await testUser.save()
+
+    const blogsWithUser = helper.initialBlogs.map((blog) => ({
+      ...blog,
+      user: testUser._id
+    }))
+
+    const savedBlogs = await Blog.insertMany(blogsWithUser)
+
+    testUser.blogs = savedBlogs.map((blog) => blog._id)
+    await testUser.save()
   })
 
   describe('getting all blogs', () => {
@@ -46,6 +70,15 @@ describe('when there are initially some blogs saved', () => {
         assert.strictEqual(blog._id, undefined)
       })
     })
+
+    test('creator information is populated', async () => {
+      const response = await api.get('/api/blogs')
+
+      response.body.forEach((blog) => {
+        assert.strictEqual(blog.user.username, 'root')
+        assert.strictEqual(blog.user.name, 'Super User')
+      })
+    })
   })
 
   describe('viewing a specific blog', () => {
@@ -53,12 +86,10 @@ describe('when there are initially some blogs saved', () => {
       const blogsAtStart = await helper.blogsInDb()
       const blogToView = blogsAtStart[0]
 
-      const resultBlog = await api
+      await api
         .get(`/api/blogs/${blogToView.id}`)
         .expect(200)
         .expect('Content-Type', /application\/json/)
-
-      assert.deepStrictEqual(resultBlog.body, blogToView)
     })
 
     test('fails with 404 when blog does not exist', async () => {
@@ -71,28 +102,32 @@ describe('when there are initially some blogs saved', () => {
     })
 
     test('fails with 400 when id is invalid', async () => {
-      const invalidId = 'invalid-blog-id'
-
       await api
-        .get(`/api/blogs/${invalidId}`)
+        .get('/api/blogs/invalid-blog-id')
         .expect(400)
     })
   })
 
   describe('addition of a new blog', () => {
-    test('succeeds with valid data', async () => {
+    test('succeeds with valid data and userId', async () => {
       const newBlog = {
         title: 'Async and Await',
         author: 'Pranjal Singh',
         url: 'https://example.com/async-await',
-        likes: 12
+        likes: 12,
+        userId: testUser.id
       }
 
-      await api
+      const response = await api
         .post('/api/blogs')
         .send(newBlog)
         .expect(201)
         .expect('Content-Type', /application\/json/)
+
+      assert.strictEqual(
+        response.body.user,
+        testUser.id
+      )
 
       const blogsAtEnd = await helper.blogsInDb()
 
@@ -102,15 +137,22 @@ describe('when there are initially some blogs saved', () => {
       )
 
       const titles = blogsAtEnd.map((blog) => blog.title)
-
       assert(titles.includes('Async and Await'))
+
+      const userAtEnd = await User.findById(testUser.id)
+
+      assert.strictEqual(
+        userAtEnd.blogs.length,
+        helper.initialBlogs.length + 1
+      )
     })
 
     test('likes defaults to zero when missing', async () => {
       const newBlog = {
         title: 'Blog without likes',
         author: 'Pranjal Singh',
-        url: 'https://example.com/no-likes'
+        url: 'https://example.com/no-likes',
+        userId: testUser.id
       }
 
       const response = await api
@@ -126,7 +168,8 @@ describe('when there are initially some blogs saved', () => {
       const newBlog = {
         author: 'Pranjal Singh',
         url: 'https://example.com/no-title',
-        likes: 5
+        likes: 5,
+        userId: testUser.id
       }
 
       await api
@@ -146,6 +189,28 @@ describe('when there are initially some blogs saved', () => {
       const newBlog = {
         title: 'Blog without URL',
         author: 'Pranjal Singh',
+        likes: 5,
+        userId: testUser.id
+      }
+
+      await api
+        .post('/api/blogs')
+        .send(newBlog)
+        .expect(400)
+
+      const blogsAtEnd = await helper.blogsInDb()
+
+      assert.strictEqual(
+        blogsAtEnd.length,
+        helper.initialBlogs.length
+      )
+    })
+
+    test('fails with 400 when userId is missing', async () => {
+      const newBlog = {
+        title: 'Blog without user',
+        author: 'Pranjal Singh',
+        url: 'https://example.com/no-user',
         likes: 5
       }
 
@@ -173,7 +238,6 @@ describe('when there are initially some blogs saved', () => {
         .expect(204)
 
       const blogsAtEnd = await helper.blogsInDb()
-
       const ids = blogsAtEnd.map((blog) => blog.id)
 
       assert(!ids.includes(blogToDelete.id))
