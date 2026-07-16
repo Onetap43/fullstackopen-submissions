@@ -8,59 +8,52 @@ const BlogForm = ({ createBlog }) => {
   const addBlog = async (event) => {
     event.preventDefault()
 
-    await createBlog({
+    const success = await createBlog({
       title,
       author,
       url
     })
 
-    setTitle('')
-    setAuthor('')
-    setUrl('')
+    if (success) {
+      setTitle('')
+      setAuthor('')
+      setUrl('')
+    }
   }
 
   return (
     <div>
-      <h2>create new</h2>
+      <h2>create new blog</h2>
 
       <form onSubmit={addBlog}>
         <div>
-          <label>
-            title:
-            <input
-              type="text"
-              value={title}
-              onChange={({ target }) =>
-                setTitle(target.value)
-              }
-            />
-          </label>
+          title
+          <input
+            value={title}
+            onChange={({ target }) =>
+              setTitle(target.value)
+            }
+          />
         </div>
 
         <div>
-          <label>
-            author:
-            <input
-              type="text"
-              value={author}
-              onChange={({ target }) =>
-                setAuthor(target.value)
-              }
-            />
-          </label>
+          author
+          <input
+            value={author}
+            onChange={({ target }) =>
+              setAuthor(target.value)
+            }
+          />
         </div>
 
         <div>
-          <label>
-            url:
-            <input
-              type="text"
-              value={url}
-              onChange={({ target }) =>
-                setUrl(target.value)
-              }
-            />
-          </label>
+          url
+          <input
+            value={url}
+            onChange={({ target }) =>
+              setUrl(target.value)
+            }
+          />
         </div>
 
         <button type="submit">
