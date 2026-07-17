@@ -30,7 +30,7 @@ const Blog = ({
     blog.user.username === loggedInUser.username
 
   return (
-    <div style={blogStyle}>
+    <div className="blog" style={blogStyle}>
       <div style={hideWhenVisible}>
         {blog.title} {blog.author}{' '}
         <button onClick={() => setVisible(true)}>
@@ -50,9 +50,7 @@ const Blog = ({
 
         <div>
           likes {blog.likes}{' '}
-          <button
-            onClick={() => handleLike(blog)}
-          >
+          <button onClick={() => handleLike(blog)}>
             like
           </button>
         </div>
@@ -60,9 +58,7 @@ const Blog = ({
         <div>{blog.user?.name}</div>
 
         {canDelete && (
-          <button
-            onClick={() => handleDelete(blog)}
-          >
+          <button onClick={() => handleDelete(blog)}>
             remove
           </button>
         )}
