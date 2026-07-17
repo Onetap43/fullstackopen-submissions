@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
 import BlogForm from './BlogForm'
 
 test('<BlogForm /> calls createBlog with correct details', async () => {
@@ -8,25 +9,20 @@ test('<BlogForm /> calls createBlog with correct details', async () => {
   const user = userEvent.setup()
 
   render(
-    <BlogForm createBlog={createBlog} />
+    <MemoryRouter>
+      <BlogForm createBlog={createBlog} />
+    </MemoryRouter>
   )
 
   const inputs = screen.getAllByRole('textbox')
 
-  const titleInput = inputs[0]
-  const authorInput = inputs[1]
-  const urlInput = inputs[2]
+  await user.type(inputs[0], 'React Testing')
+  await user.type(inputs[1], 'Pranjal Singh')
+  await user.type(inputs[2], 'https://example.com')
 
-  const createButton =
-    screen.getByText('create')
+  await user.click(screen.getByText('create'))
 
-  await user.type(titleInput, 'React Testing')
-  await user.type(authorInput, 'Pranjal Singh')
-  await user.type(urlInput, 'https://example.com')
-
-  await user.click(createButton)
-
-  expect(createBlog.mock.calls).toHaveLength(1)
+  expect(createBlog).toHaveBeenCalledTimes(1)
 
   expect(createBlog.mock.calls[0][0]).toEqual({
     title: 'React Testing',

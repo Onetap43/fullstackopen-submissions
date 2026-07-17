@@ -11,9 +11,9 @@ const setToken = (newToken) => {
 }
 
 const getConfig = () => ({
-  headers: {
-    Authorization: token
-  }
+  headers: token
+    ? { Authorization: token }
+    : {}
 })
 
 const getAll = async () => {

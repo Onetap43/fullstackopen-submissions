@@ -1,9 +1,19 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import {
+  Button,
+  Paper,
+  Stack,
+  TextField,
+  Typography
+} from '@mui/material'
 
 const BlogForm = ({ createBlog }) => {
   const [title, setTitle] = useState('')
   const [author, setAuthor] = useState('')
   const [url, setUrl] = useState('')
+
+  const navigate = useNavigate()
 
   const addBlog = async (event) => {
     event.preventDefault()
@@ -18,49 +28,69 @@ const BlogForm = ({ createBlog }) => {
       setTitle('')
       setAuthor('')
       setUrl('')
+      navigate('/')
     }
   }
 
   return (
-    <div>
-      <h2>create new blog</h2>
+    <Paper
+      elevation={4}
+      sx={{
+        maxWidth: 500,
+        mx: 'auto',
+        mt: 5,
+        p: 4
+      }}
+    >
+      <Typography
+        variant="h4"
+        align="center"
+        gutterBottom
+      >
+        Create New Blog
+      </Typography>
 
-      <form onSubmit={addBlog}>
-        <div>
-          title
-          <input
-            value={title}
-            onChange={({ target }) =>
-              setTitle(target.value)
-            }
-          />
-        </div>
+      <Stack
+        component="form"
+        spacing={2}
+        onSubmit={addBlog}
+      >
+        <TextField
+          label="Title"
+          fullWidth
+          value={title}
+          onChange={({ target }) =>
+            setTitle(target.value)
+          }
+        />
 
-        <div>
-          author
-          <input
-            value={author}
-            onChange={({ target }) =>
-              setAuthor(target.value)
-            }
-          />
-        </div>
+        <TextField
+          label="Author"
+          fullWidth
+          value={author}
+          onChange={({ target }) =>
+            setAuthor(target.value)
+          }
+        />
 
-        <div>
-          url
-          <input
-            value={url}
-            onChange={({ target }) =>
-              setUrl(target.value)
-            }
-          />
-        </div>
+        <TextField
+          label="URL"
+          fullWidth
+          value={url}
+          onChange={({ target }) =>
+            setUrl(target.value)
+          }
+        />
 
-        <button type="submit">
+        <Button
+          variant="contained"
+          type="submit"
+          size="large"
+        >
           create
-        </button>
-      </form>
-    </div>
+        </Button>
+      </Stack>
+    </Paper>
   )
 }
 

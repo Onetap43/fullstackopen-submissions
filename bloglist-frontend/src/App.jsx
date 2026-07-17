@@ -1,10 +1,27 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import {
+  Link,
+  Navigate,
+  Route,
+  Routes,
+  useMatch,
+  useNavigate
+} from 'react-router-dom'
 
-import Blog from './components/Blog'
+import {
+  AppBar,
+  Box,
+  Button,
+  Container,
+  Toolbar,
+  Typography
+} from '@mui/material'
+
 import BlogForm from './components/BlogForm'
+import BlogList from './components/BlogList'
+import BlogView from './components/BlogView'
 import LoginForm from './components/LoginForm'
 import Notification from './components/Notification'
-import Togglable from './components/Togglable'
 
 import blogService from './services/blogs'
 import loginService from './services/login'
@@ -15,46 +32,33 @@ const App = () => {
   const [password, setPassword] = useState('')
   const [user, setUser] = useState(null)
 
-  const [notification, setNotification] = useState({
-    message: null,
-    type: 'success'
-  })
+  const [notification, setNotification] =
+    useState({
+      message: null,
+      type: 'success'
+    })
 
-  const blogFormRef = useRef()
+  const navigate = useNavigate()
 
-  useEffect(() => {
-    const fetchBlogs = async () => {
-      try {
-        const initialBlogs = await blogService.getAll()
-        setBlogs(initialBlogs)
-      } catch {
-        showNotification('could not load blogs', 'error')
-      }
-    }
+  const blogMatch = useMatch('/blogs/:id')
 
-    fetchBlogs()
-  }, [])
+  const selectedBlog = blogMatch
+    ? blogs.find(
+        (blog) =>
+          blog.id === blogMatch.params.id
+      )
+    : null
 
-  useEffect(() => {
-    const loggedUserJSON = window.localStorage.getItem(
-      'loggedBlogappUser'
-    )
-
-    if (loggedUserJSON) {
-      const savedUser = JSON.parse(loggedUserJSON)
-
-      setUser(savedUser)
-      blogService.setToken(savedUser.token)
-    }
-  }, [])
-
-  const showNotification = (message, type = 'success') => {
+  const showNotification = (
+    message,
+    type = 'success'
+  ) => {
     setNotification({
       message,
       type
     })
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       setNotification({
         message: null,
         type: 'success'
@@ -62,25 +66,63 @@ const App = () => {
     }, 5000)
   }
 
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const initialBlogs =
+          await blogService.getAll()
+
+        setBlogs(initialBlogs)
+      } catch {
+        showNotification(
+          'could not load blogs',
+          'error'
+        )
+      }
+    }
+
+    fetchBlogs()
+  }, [])
+
+  useEffect(() => {
+    const loggedUserJSON =
+      window.localStorage.getItem(
+        'loggedBlogappUser'
+      )
+
+    if (loggedUserJSON) {
+      const savedUser =
+        JSON.parse(loggedUserJSON)
+
+      setUser(savedUser)
+      blogService.setToken(savedUser.token)
+    }
+  }, [])
+
   const handleLogin = async (event) => {
     event.preventDefault()
 
     try {
-      const loggedUser = await loginService.login({
-        username,
-        password
-      })
+      const loggedUser =
+        await loginService.login({
+          username,
+          password
+        })
 
       window.localStorage.setItem(
         'loggedBlogappUser',
         JSON.stringify(loggedUser)
       )
 
-      blogService.setToken(loggedUser.token)
-      setUser(loggedUser)
+      blogService.setToken(
+        loggedUser.token
+      )
 
+      setUser(loggedUser)
       setUsername('')
       setPassword('')
+
+      navigate('/')
     } catch {
       showNotification(
         'wrong username or password',
@@ -90,27 +132,33 @@ const App = () => {
   }
 
   const handleLogout = () => {
-    window.localStorage.removeItem('loggedBlogappUser')
+    window.localStorage.removeItem(
+      'loggedBlogappUser'
+    )
 
     blogService.setToken(null)
+
     setUser(null)
     setUsername('')
     setPassword('')
-  }
 
+    navigate('/')
+  }
+  
   const addBlog = async (blogObject) => {
     try {
-      const createdBlog = await blogService.create(blogObject)
+      const createdBlog =
+        await blogService.create(blogObject)
 
       setBlogs((currentBlogs) =>
         currentBlogs.concat(createdBlog)
       )
 
-      blogFormRef.current.toggleVisibility()
-
       showNotification(
         `a new blog ${createdBlog.title} by ${createdBlog.author} added`
       )
+
+      navigate('/')
 
       return true
     } catch {
@@ -124,6 +172,14 @@ const App = () => {
   }
 
   const likeBlog = async (blog) => {
+    if (!user) {
+      showNotification(
+        'you must be logged in to like a blog',
+        'error'
+      )
+      return
+    }
+
     const blogToUpdate = {
       title: blog.title,
       author: blog.author,
@@ -133,10 +189,11 @@ const App = () => {
     }
 
     try {
-      const returnedBlog = await blogService.update(
-        blog.id,
-        blogToUpdate
-      )
+      const returnedBlog =
+        await blogService.update(
+          blog.id,
+          blogToUpdate
+        )
 
       const updatedBlog = {
         ...returnedBlog,
@@ -172,13 +229,16 @@ const App = () => {
 
       setBlogs((currentBlogs) =>
         currentBlogs.filter(
-          (currentBlog) => currentBlog.id !== blog.id
+          (currentBlog) =>
+            currentBlog.id !== blog.id
         )
       )
 
       showNotification(
         `blog ${blog.title} by ${blog.author} removed`
       )
+
+      navigate('/')
     } catch {
       showNotification(
         `could not remove ${blog.title}`,
@@ -187,69 +247,161 @@ const App = () => {
     }
   }
 
-  if (user === null) {
-    return (
-      <div>
-        <h2>Log in to application</h2>
+  const sortedBlogs = [...blogs].sort(
+    (a, b) => b.likes - a.likes
+  )
+
+  return (
+    <Container maxWidth="lg">
+
+      <AppBar position="static">
+        <Toolbar>
+
+          <Typography
+            variant="h6"
+            sx={{
+              flexGrow: 1,
+              fontWeight: 'bold'
+            }}
+          >
+            Blog App
+          </Typography>
+
+          <Button
+            color="inherit"
+            component={Link}
+            to="/"
+          >
+            Blogs
+          </Button>
+
+          {user && (
+            <Button
+              color="inherit"
+              component={Link}
+              to="/create"
+            >
+              Create Blog
+            </Button>
+          )}
+
+          {!user ? (
+            <Button
+              color="inherit"
+              component={Link}
+              to="/login"
+            >
+              Login
+            </Button>
+          ) : (
+            <>
+              <Typography
+                sx={{
+                  mx: 2
+                }}
+              >
+                {user.name} logged in
+              </Typography>
+
+              <Button
+                color="inherit"
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
+            </>
+          )}
+
+        </Toolbar>
+      </AppBar>
+
+      <Box mt={3}>
 
         <Notification
           message={notification.message}
           type={notification.type}
         />
 
-        <LoginForm
-          username={username}
-          password={password}
-          handleSubmit={handleLogin}
-          handleUsernameChange={({ target }) =>
-            setUsername(target.value)
-          }
-          handlePasswordChange={({ target }) =>
-            setPassword(target.value)
-          }
-        />
-      </div>
-    )
-  }
+        <Routes>
+        <Route
+            path="/"
+            element={
+              <BlogList
+                blogs={sortedBlogs}
+              />
+            }
+          />
 
-  const sortedBlogs = [...blogs].sort(
-    (firstBlog, secondBlog) =>
-      secondBlog.likes - firstBlog.likes
-  )
+          <Route
+            path="/login"
+            element={
+              user ? (
+                <Navigate
+                  replace
+                  to="/"
+                />
+              ) : (
+                <LoginForm
+                  username={username}
+                  password={password}
+                  handleSubmit={handleLogin}
+                  handleUsernameChange={({
+                    target
+                  }) =>
+                    setUsername(target.value)
+                  }
+                  handlePasswordChange={({
+                    target
+                  }) =>
+                    setPassword(target.value)
+                  }
+                />
+              )
+            }
+          />
 
-  return (
-    <div>
-      <h2>blogs</h2>
+          <Route
+            path="/blogs/:id"
+            element={
+              <BlogView
+                blog={selectedBlog}
+                loggedInUser={user}
+                handleLike={likeBlog}
+                handleDelete={deleteBlog}
+              />
+            }
+          />
 
-      <Notification
-        message={notification.message}
-        type={notification.type}
-      />
+          <Route
+            path="/create"
+            element={
+              user ? (
+                <BlogForm
+                  createBlog={addBlog}
+                />
+              ) : (
+                <Navigate
+                  replace
+                  to="/login"
+                />
+              )
+            }
+          />
 
-      <p>
-        {user.name} logged in{' '}
-        <button onClick={handleLogout}>
-          logout
-        </button>
-      </p>
+          <Route
+            path="*"
+            element={
+              <Navigate
+                replace
+                to="/"
+              />
+            }
+          />
+        </Routes>
 
-      <Togglable
-        buttonLabel="create new blog"
-        ref={blogFormRef}
-      >
-        <BlogForm createBlog={addBlog} />
-      </Togglable>
+      </Box>
 
-      {sortedBlogs.map((blog) => (
-        <Blog
-          key={blog.id}
-          blog={blog}
-          loggedInUser={user}
-          handleLike={likeBlog}
-          handleDelete={deleteBlog}
-        />
-      ))}
-    </div>
+    </Container>
   )
 }
 

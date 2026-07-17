@@ -1,22 +1,31 @@
+import { Alert, Snackbar } from '@mui/material'
+
 const Notification = ({ message, type }) => {
-  if (message === null) {
+  if (!message) {
     return null
   }
 
-  const style = {
-    color: type === 'error' ? 'red' : 'green',
-    background: 'lightgrey',
-    fontSize: 20,
-    borderStyle: 'solid',
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10
-  }
-
   return (
-    <div style={style}>
-      {message}
-    </div>
+    <Snackbar
+      open={true}
+      autoHideDuration={5000}
+      anchorOrigin={{
+        vertical: 'top',
+        horizontal: 'center'
+      }}
+    >
+      <Alert
+        severity={
+          type === 'error'
+            ? 'error'
+            : 'success'
+        }
+        variant="filled"
+        sx={{ width: '100%' }}
+      >
+        {message}
+      </Alert>
+    </Snackbar>
   )
 }
 

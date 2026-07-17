@@ -1,3 +1,11 @@
+import {
+  Button,
+  Paper,
+  Stack,
+  TextField,
+  Typography
+} from '@mui/material'
+
 const LoginForm = ({
   handleSubmit,
   username,
@@ -6,36 +14,56 @@ const LoginForm = ({
   handlePasswordChange
 }) => {
   return (
-    <form onSubmit={handleSubmit}>
-      <div>
-        <label>
-          username
-          <input
-            data-testid="username"
-            type="text"
-            value={username}
-            onChange={handleUsernameChange}
-          />
-        </label>
-      </div>
+    <Paper
+      elevation={4}
+      sx={{
+        maxWidth: 420,
+        mx: 'auto',
+        mt: 5,
+        p: 4
+      }}
+    >
+      <Typography
+        variant="h4"
+        gutterBottom
+        align="center"
+      >
+        Login
+      </Typography>
 
-      <div>
-        <label>
-          password
-          <input
-            data-testid="password"
-            type="password"
-            value={password}
-            onChange={handlePasswordChange}
-          />
-        </label>
-      </div>
+      <Stack
+        component="form"
+        spacing={2}
+        onSubmit={handleSubmit}
+      >
+        <TextField
+          label="Username"
+          variant="outlined"
+          fullWidth
+          data-testid="username"
+          value={username}
+          onChange={handleUsernameChange}
+        />
 
-      <button type="submit">
-        login
-      </button>
-    </form>
+        <TextField
+          label="Password"
+          type="password"
+          variant="outlined"
+          fullWidth
+          data-testid="password"
+          value={password}
+          onChange={handlePasswordChange}
+        />
+
+        <Button
+          variant="contained"
+          type="submit"
+          size="large"
+        >
+          Login
+        </Button>
+      </Stack>
+    </Paper>
   )
 }
-
 export default LoginForm
